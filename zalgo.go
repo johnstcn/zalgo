@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
+	"time"
 )
 
 type zalgoOpts struct {
@@ -200,6 +201,7 @@ func newZalgoOpts(level int) zalgoOpts {
 }
 
 func main() {
+	rand.Seed(time.Now().Unix())
 	var zalgoLevel int
 	flag.IntVar(&zalgoLevel, "level", 0, "zalgo level (0-2)")
 	flag.Parse()
