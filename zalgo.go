@@ -9,13 +9,7 @@ import (
 	"time"
 )
 
-type zalgoOpts struct {
-	MinUp, MaxUp     int
-	MinMid, MaxMid   int
-	MinDown, MaxDown int
-}
-
-var zalgo_up = []rune{
+var Up = []rune{
 	'\u030d', /*     ̍     */
 	'\u030e', /*     ̎     */
 	'\u0304', /*     ̄     */
@@ -68,7 +62,7 @@ var zalgo_up = []rune{
 	'\u031a', /*     ̚     */
 }
 
-var zalgo_down = []rune{
+var Down = []rune{
 	'\u0316', /*     ̖     */
 	'\u0317', /*     ̗     */
 	'\u0318', /*     ̘     */
@@ -111,7 +105,7 @@ var zalgo_down = []rune{
 	'\u0323', /*     ̣     */
 }
 
-var zalgo_mid = []rune{
+var Mid = []rune{
 	'\u0315', /*     ̕     */
 	'\u031b', /*     ̛     */
 	'\u0340', /*     ̀     */
@@ -137,77 +131,52 @@ var zalgo_mid = []rune{
 	'\u0489', /*     ҉_    */
 }
 
-func randFromSlice(s []rune) rune {
-	randIdx := rand.Intn(len(s))
-	return s[randIdx]
+type Zalgoer interface {
+	Zalgoify(s string, n int) string
 }
 
-func zalgoifyOne(r rune, z zalgoOpts) []rune {
+type zalgoer struct {
+	rand *rand.Rand
+}
+
+func New() Zalgoer {
+	return &zalgoer{
+		rand: rand.New(rand.NewSource(time.Now().Unix())),
+	}
+}
+
+func (z *zalgoer) Zalgoify(s string, n int) string {
+	zalgoed := make([]rune, 0)
+	for _, r := range s {
+		zalgoed = append(zalgoed, z.zalgoifyOne(r, n)...)
+	}
+	return string(zalgoed)
+}
+
+func (z *zalgoer) zalgoifyOne(r rune, n int) []rune {
 	zalgoed := make([]rune, 0)
 	zalgoed = append(zalgoed, r)
-	for i := z.MinUp; i < z.MaxUp; i++ {
-		zalgoed = append(zalgoed, randFromSlice(zalgo_up))
-	}
-
-	for i := z.MinMid; i < z.MaxMid; i++ {
-		zalgoed = append(zalgoed, randFromSlice(zalgo_mid))
-	}
-
-	for i := z.MinDown; i < z.MaxDown; i++ {
-		zalgoed = append(zalgoed, randFromSlice(zalgo_down))
+	max := z.rand.Intn(n)
+	for i := 0; i <= max; i++ {
+		zalgoed = append(zalgoed, z.randFromSlice(Up))
+		zalgoed = append(zalgoed, z.randFromSlice(Mid))
+		zalgoed = append(zalgoed, z.randFromSlice(Down))
 	}
 	return zalgoed
 }
 
-func zalgoify(s string, z zalgoOpts) string {
-	runes := []rune(s)
-	out := make([]rune, 0)
-	for _, r := range runes {
-		out = append(out, zalgoifyOne(r, z)...)
-	}
-	return string(out)
-}
-
-func newZalgoOpts(level int) zalgoOpts {
-	z := zalgoOpts{}
-	if level == 0 { // min
-		z.MinUp = 0
-		z.MaxUp = rand.Intn(8)
-		z.MinMid = 0
-		z.MaxMid = rand.Intn(2)
-		z.MinDown = 0
-		z.MaxDown = rand.Intn(8)
-		return z
-	}
-
-	if level == 1 { // med
-		z.MinUp = 1
-		z.MaxUp = rand.Intn(16)/2 + 1
-		z.MinMid = 1
-		z.MaxMid = rand.Intn(6) / 2
-		z.MinDown = 1
-		z.MaxDown = rand.Intn(16)/2 + 1
-		return z
-	}
-
-	// maximum zalgoooo
-	z.MinUp = 3
-	z.MaxUp = rand.Intn(64) + 3
-	z.MinMid = 1
-	z.MaxMid = rand.Intn(16) + 1
-	z.MinDown = 3
-	z.MaxDown = rand.Intn(64) + 3
-	return z
+func (z *zalgoer) randFromSlice(s []rune) rune {
+	randIdx := z.rand.Intn(len(s))
+	return s[randIdx]
 }
 
 func main() {
-	rand.Seed(time.Now().Unix())
 	var zalgoLevel int
-	flag.IntVar(&zalgoLevel, "level", 0, "zalgo level (0-2)")
+	flag.IntVar(&zalgoLevel, "level", 1, "zalgo level (0-∞)")
 	flag.Parse()
-	opts := newZalgoOpts(zalgoLevel)
 	scanner := bufio.NewScanner(os.Stdin)
+	z := New()
 	for scanner.Scan() {
-		fmt.Println(zalgoify(scanner.Text(), opts))
+		fmt.Println(z.Zalgoify(scanner.Text(), zalgoLevel))
 	}
 }
